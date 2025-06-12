@@ -1,6 +1,7 @@
 const mongoose = require('mongoose');
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
+const Schema = mongoose.Schema;
 
 const SALT_WORK_FACTOR = 10;
 const { JWT_SECRET, JWT_EXPIRES_IN } = process.env;
@@ -29,6 +30,12 @@ const UserSchema = new mongoose.Schema({
     default: 'user',
     enum: ['user', 'admin'],
   },
+  favorites: [
+    {
+      type: Schema.Types.ObjectId,
+      ref: 'Product',
+    },
+  ],
 });
 
 UserSchema.pre('save', async function (next) {

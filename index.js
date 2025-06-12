@@ -6,9 +6,9 @@ const { router: productsRouter } = require('./app/products');
 const categories = require('./app/categories');
 const users = require('./app/users');
 const admin = require('./app/admin');
+const favorites = require('./app/favorites');
 const cors = require('cors');
 const mongoose = require('mongoose');
-const { swaggerUi, swaggerDocument } = require('./swagger');
 
 async function start() {
   await mongoose.connect('mongodb://localhost:27017/shop');
@@ -19,7 +19,7 @@ async function start() {
   app.use('/categories', categories);
   app.use('/users', users);
   app.use('/admin', admin);
-  app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument));
+  app.use('/favorites', favorites);
 
   app.listen(port, () => {
     console.log(`Server started on ${port} port!`);

@@ -5,6 +5,7 @@ const multer = require('multer');
 const path = require('path');
 const config = require('../config.js');
 const Product = require('../models/product-model.js');
+const Category = require('../models/category-model.js');
 const auth = require('./middleware/auth.js');
 const permit = require('./middleware/permit.js');
 
@@ -21,9 +22,19 @@ const upload = multer({ storage });
 
 async function listProducts(req, res) {
   try {
-    const results = await Product.find();
+    const { category } = req.query;
+    let filter = {};
+
+    if (category) {
+      const foundCategory = await Category.findOne({ title: category });
+      if (!foundCategory) return res.status(404).send('Category not found');
+      filter.category = foundCategory._id;
+    }
+
+    const results = await Product.find(filter);
     res.send(results);
   } catch (error) {
+    console.error(error);
     res.sendStatus(500);
   }
 }
@@ -93,7 +104,8 @@ async function updateProduct(req, res) {
 
 router.get('/', listProducts);
 router.get('/:id', getProductById);
-router.post('/', [auth, permit('admin')], upload.single('image'), createProduct);
+// router.post('/', [auth, permit('admin')], upload.single('image'), createProduct);
+router.post('/', upload.single('image'), createProduct);
 router.delete('/:id', deleteProduct);
 router.put('/:id', upload.single('image'), updateProduct);
 
