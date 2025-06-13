@@ -20,6 +20,8 @@ module.exports = async function auth(req, res, next) {
     req.user = user;
     next();
   } catch (error) {
+    if (error.name === 'TokenExpiredError')
+      return res.status(401).send({ message: 'Token expired' });
     console.log('JWT verify error:', error);
     return res.status(401).send({ error: 'Token verification failed:' + error.message });
   }
