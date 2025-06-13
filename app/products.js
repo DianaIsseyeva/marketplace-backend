@@ -6,6 +6,7 @@ const path = require('path');
 const config = require('../config.js');
 const Product = require('../models/product-model.js');
 const Category = require('../models/category-model.js');
+const User = require('../models/user-model.js');
 const auth = require('./middleware/auth.js');
 const permit = require('./middleware/permit.js');
 
@@ -23,6 +24,10 @@ const upload = multer({ storage });
 async function listProducts(req, res) {
   try {
     const { category } = req.query;
+    const { userId } = req.body;
+    const user = await User.findById(userId);
+    const userFavorites = user.favorites.map(id => id.toString());
+
     let filter = {};
 
     if (category) {
@@ -32,7 +37,11 @@ async function listProducts(req, res) {
     }
 
     const results = await Product.find(filter);
-    res.send(results);
+    const productsWithFavorites = results.map(product => ({
+      ...product.toObject(),
+      isFavorite: userFavorites.includes(product._id.toString()),
+    }));
+    res.send(productsWithFavorites);
   } catch (error) {
     console.error(error);
     res.sendStatus(500);
