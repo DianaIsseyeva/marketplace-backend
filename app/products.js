@@ -24,9 +24,16 @@ const upload = multer({ storage });
 async function listProducts(req, res) {
   try {
     const { category } = req.query;
-    const { userId } = req.body;
-    const user = await User.findById(userId);
-    const userFavorites = user.favorites.map(id => id.toString());
+    const userId = req.user.id;
+
+    let userFavorites = [];
+
+    if (userId) {
+      const user = await User.findById(userId);
+      if (user) {
+        userFavorites = user.favorites.map(id => id.toString());
+      }
+    }
 
     let filter = {};
 
@@ -41,6 +48,7 @@ async function listProducts(req, res) {
       ...product.toObject(),
       isFavorite: userFavorites.includes(product._id.toString()),
     }));
+
     res.send(productsWithFavorites);
   } catch (error) {
     console.error(error);
@@ -111,7 +119,7 @@ async function updateProduct(req, res) {
   }
 }
 
-router.get('/', listProducts);
+router.get('/', auth, listProducts);
 router.get('/:id', getProductById);
 // router.post('/', [auth, permit('admin')], upload.single('image'), createProduct);
 router.post('/', upload.single('image'), createProduct);
