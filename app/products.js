@@ -21,7 +21,7 @@ const storage = multer.diskStorage({
 
 const upload = multer({ storage });
 
-async function listProducts(req, res) {
+async function listProductsWithFavorites(req, res) {
   try {
     const { category } = req.query;
     const userId = req.user.id;
@@ -50,6 +50,25 @@ async function listProducts(req, res) {
     }));
 
     res.send(productsWithFavorites);
+  } catch (error) {
+    console.error(error);
+    res.sendStatus(500);
+  }
+}
+
+async function listProducts(req, res) {
+  try {
+    const { category } = req.query;
+    let filter = {};
+
+    if (category) {
+      const foundCategory = await Category.findOne({ title: category });
+      if (!foundCategory) return res.status(404).send('Category not found');
+      filter.category = foundCategory._id;
+    }
+
+    const results = await Product.find(filter);
+    res.send(results);
   } catch (error) {
     console.error(error);
     res.sendStatus(500);
@@ -119,7 +138,8 @@ async function updateProduct(req, res) {
   }
 }
 
-router.get('/', auth, listProducts);
+router.get('/', auth, listProductsWithFavorites);
+router.get('/catalog', listProducts);
 router.get('/:id', getProductById);
 // router.post('/', [auth, permit('admin')], upload.single('image'), createProduct);
 router.post('/', upload.single('image'), createProduct);
@@ -129,6 +149,7 @@ router.put('/:id', upload.single('image'), updateProduct);
 module.exports = {
   router,
   listProducts,
+  listProductsWithFavorites,
   getProductById,
   createProduct,
   deleteProduct,
