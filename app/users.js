@@ -28,7 +28,10 @@ router.post('/sessions', async (req, res) => {
     const token = user.generateJWT();
     user.token = token;
     await user.save();
-    return res.send({ message: 'Authenticated', user, token });
+    const populatedUser = await User.findById(user._id)
+      .populate('cart.product')
+      .populate('favorites');
+    return res.send({ message: 'Authenticated', user: populatedUser, token });
   } catch (error) {
     return res.status(500).send({ error: error.message });
   }

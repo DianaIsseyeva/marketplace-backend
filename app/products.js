@@ -21,41 +21,6 @@ const storage = multer.diskStorage({
 
 const upload = multer({ storage });
 
-async function listProductsWithFavorites(req, res) {
-  try {
-    const { category } = req.query;
-    const userId = req.user.id;
-
-    let userFavorites = [];
-
-    if (userId) {
-      const user = await User.findById(userId);
-      if (user) {
-        userFavorites = user.favorites.map(id => id.toString());
-      }
-    }
-
-    let filter = {};
-
-    if (category) {
-      const foundCategory = await Category.findOne({ title: category });
-      if (!foundCategory) return res.status(404).send('Category not found');
-      filter.category = foundCategory._id;
-    }
-
-    const results = await Product.find(filter);
-    const productsWithFavorites = results.map(product => ({
-      ...product.toObject(),
-      isFavorite: userFavorites.includes(product._id.toString()),
-    }));
-
-    res.send(productsWithFavorites);
-  } catch (error) {
-    console.error(error);
-    res.sendStatus(500);
-  }
-}
-
 async function listProducts(req, res) {
   try {
     const { category } = req.query;
@@ -138,20 +103,36 @@ async function updateProduct(req, res) {
   }
 }
 
-router.get('/', auth, listProductsWithFavorites);
+async function getProductsByIds(req, res) {
+  try {
+    const { ids } = req.body;
+
+    if (!Array.isArray(ids) || ids.length === 0) {
+      return res.status(400).send({ message: 'Invalid or empty ids array' });
+    }
+
+    const products = await Product.find({ _id: { $in: ids } });
+    res.send(products);
+  } catch (error) {
+    console.error('Error fetching products by ids:', error);
+    res.sendStatus(500);
+  }
+}
+
 router.get('/catalog', listProducts);
 router.get('/:id', getProductById);
 // router.post('/', [auth, permit('admin')], upload.single('image'), createProduct);
 router.post('/', upload.single('image'), createProduct);
 router.delete('/:id', deleteProduct);
 router.put('/:id', upload.single('image'), updateProduct);
+router.post('/by-ids', getProductsByIds);
 
 module.exports = {
   router,
   listProducts,
-  listProductsWithFavorites,
   getProductById,
   createProduct,
   deleteProduct,
   updateProduct,
+  getProductsByIds,
 };
