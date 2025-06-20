@@ -7,7 +7,7 @@ const Product = require('../models/product-model');
 router.post('/:productId', auth, async (req, res) => {
   const userId = req.user.id;
   const { productId } = req.params;
-  const { quantaty = 1 } = req.body;
+  const { quantity = 1 } = req.body;
 
   try {
     const user = await User.findById(userId);
@@ -17,13 +17,13 @@ router.post('/:productId', auth, async (req, res) => {
 
     const existing = user.cart.find(item => item.product.toString() === productId);
     if (existing) {
-      existing.quantity += quantaty;
+      existing.quantity += quantity;
     } else {
       const product = await Product.findById(productId);
       if (!product) {
         return res.status(404).json({ message: 'Product not found' });
       }
-      user.cart.push({ product: product._id, quantity: quantaty });
+      user.cart.push({ product: product._id, quantity });
     }
 
     await user.save();

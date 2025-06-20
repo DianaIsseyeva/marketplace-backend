@@ -8,6 +8,8 @@ const users = require('./app/users');
 const admin = require('./app/admin');
 const favorites = require('./app/favorites');
 const cart = require('./app/cart');
+const orders = require('./app/orders');
+
 const cors = require('cors');
 const mongoose = require('mongoose');
 
@@ -22,6 +24,7 @@ async function start() {
   app.use('/admin', admin);
   app.use('/favorites', favorites);
   app.use('/cart', cart);
+  app.use('/orders', orders);
 
   app.listen(port, () => {
     console.log(`Server started on ${port} port!`);

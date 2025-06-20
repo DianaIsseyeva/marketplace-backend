@@ -26,6 +26,7 @@ const ProductSchema = new Schema({
     requiered: true,
     default: 1,
   },
+  seller: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
 });
 
 const Product = mongoose.model('Product', ProductSchema);

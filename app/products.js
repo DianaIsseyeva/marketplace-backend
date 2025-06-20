@@ -55,15 +55,21 @@ async function getProductById(req, res) {
 }
 
 async function createProduct(req, res) {
+  if (!req.user || req.user.role !== 'seller') {
+    return res.status(403).send({ message: 'Access denied' });
+  }
+
   const productData = req.body;
+  productData.seller = req.user._id;
+
   if (req.file) {
     productData.image = req.file.filename;
   } else {
     productData.image = null;
   }
-  const product = new Product(productData);
 
   try {
+    const product = new Product(productData);
     await product.save();
     res.status(201).send(product);
   } catch (error) {
@@ -74,12 +80,22 @@ async function createProduct(req, res) {
 
 async function deleteProduct(req, res) {
   try {
-    const deleted = await Product.findByIdAndDelete({ _id: req.params.id });
-    if (deleted) {
-      res.send({ message: 'Product deleted successfully' });
-    } else {
-      res.sendStatus(404);
+    const product = await Product.findById(req.params.id);
+
+    if (!product) {
+      return res.status(404).send({ message: 'Product not found' });
     }
+
+    if (!req.user || (req.user.role !== 'seller' && req.user.role !== 'admin')) {
+      return res.status(403).send({ message: 'Access denied' });
+    }
+
+    if (req.user.role === 'seller' && String(product.seller) !== String(req.user._id)) {
+      return res.status(403).send({ message: 'You can delete only your own products' });
+    }
+
+    await product.deleteOne();
+    res.send({ message: 'Product deleted successfully' });
   } catch (error) {
     console.error('Failed to delete product:', error);
     res.sendStatus(500);
@@ -88,18 +104,35 @@ async function deleteProduct(req, res) {
 
 async function updateProduct(req, res) {
   try {
+    const product = await Product.findById(req.params.id);
+
+    if (!product) {
+      return res.status(404).send({ message: 'Product not found' });
+    }
+
+    if (!req.user || (req.user.role !== 'seller' && req.user.role !== 'admin')) {
+      return res.status(403).send({ message: 'Access denied' });
+    }
+
+    if (req.user.role === 'seller' && String(product.seller) !== String(req.user._id)) {
+      return res.status(403).send({ message: 'You can update only your own products' });
+    }
+
     const updateData = req.body;
-    const updateProduct = await Product.findByIdAndUpdate(req.params.id, updateData, {
+
+    if (req.file) {
+      updateData.image = req.file.filename;
+    }
+
+    const updatedProduct = await Product.findByIdAndUpdate(req.params.id, updateData, {
       new: true,
       runValidators: true,
     });
-    if (!updateProduct) {
-      return res.sendStatus(404);
-    }
-    res.json({ message: 'Product updated sucessfully', product: updateProduct });
+
+    res.json({ message: 'Product updated successfully', product: updatedProduct });
   } catch (error) {
     console.error('Failed to update product', error);
-    send.status(500).send(error);
+    res.status(500).send(error);
   }
 }
 
@@ -119,13 +152,28 @@ async function getProductsByIds(req, res) {
   }
 }
 
+async function getSellerProducts(req, res) {
+  try {
+    if (!req.user || req.user.role !== 'seller') {
+      return res.status(403).send({ message: 'Access denied' });
+    }
+
+    const products = await Product.find({ seller: req.user._id });
+    res.send(products);
+  } catch (error) {
+    console.error('Error fetching seller products:', error);
+    res.sendStatus(500);
+  }
+}
+
 router.get('/catalog', listProducts);
-router.get('/:id', getProductById);
-// router.post('/', [auth, permit('admin')], upload.single('image'), createProduct);
-router.post('/', upload.single('image'), createProduct);
-router.delete('/:id', deleteProduct);
-router.put('/:id', upload.single('image'), updateProduct);
+router.post('/', [auth, permit('seller')], upload.single('image'), createProduct);
+// router.post('/', upload.single('image'), createProduct);
+router.delete('/:id', [auth, permit('seller')], deleteProduct);
+router.put('/:id', [auth, permit('seller')], upload.single('image'), updateProduct);
 router.post('/by-ids', getProductsByIds);
+router.get('/my-products', [auth, permit('seller')], getSellerProducts);
+router.get('/:id', getProductById);
 
 module.exports = {
   router,
@@ -135,4 +183,5 @@ module.exports = {
   deleteProduct,
   updateProduct,
   getProductsByIds,
+  getSellerProducts,
 };
